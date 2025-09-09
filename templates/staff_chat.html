@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>직원 채팅 시스템 - 나인트리 호텔</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .staff-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .staff-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .staff-name input {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+
+        .status-dot.connected {
+            background-color: #4caf50;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e1e1e1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e1e1e1;
+            font-weight: bold;
+        }
+
+        .chat-requests {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chat-request {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .chat-request:hover {
+            background-color: #f8f9fa;
+        }
+
+        .chat-request.active {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .room-number {
+            font-weight: bold;
+            color: #2196f3;
+        }
+
+        .language-badge {
+            background-color: #4caf50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .request-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .request-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .status-waiting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e1e1e1;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .chat-info h3 {
+            margin-bottom: 5px;
+        }
+
+        .chat-info p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #2196f3;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.customer {
+            background-color: #e3f2fd;
+            color: #333;
+            margin-right: auto;
+        }
+
+        .message.staff {
+            background-color: #2196f3;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.system {
+            background-color: #e9ecef;
+            color: #666;
+            text-align: center;
+            font-size: 14px;
+            margin: 10px auto;
+            max-width: 100%;
+        }
+
+        .message-header {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .message-translation {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+            font-style: italic;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 5px;
+        }
+
+        .message.customer .message-translation {
+            border-top-color: rgba(0,0,0,0.1);
+        }
+
+        .message-input-container {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #e1e1e1;
+        }
+
+        .message-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .message-input:focus {
+            border-color: #2196f3;
+        }
+
+        .input-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .quick-replies {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .quick-reply {
+            background-color: #f8f9fa;
+            border: 1px solid #e1e1e1;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-reply:hover {
+            background-color: #e9ecef;
+            border-color: #2196f3;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 200px;
+            }
+
+            .chat-actions {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .input-actions {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👨‍💼 직원 채팅 시스템</h1>
+        <div class="staff-info">
+            <div class="staff-name">
+                <label>직원 이름:</label>
+                <input type="text" id="staffNameInput" placeholder="이름을 입력하세요" value="호텔직원">
+            </div>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">연결 중...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- 채팅 요청 목록 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                📞 채팅 요청 목록
+            </div>
+            <div class="chat-requests" id="chatRequests">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔇</div>
+                    <p>대기 중인 채팅 요청이 없습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 채팅 영역 -->
+        <div class="chat-area">
+            <div class="chat-header" id="chatHeader" style="display: none;">
+                <div class="chat-info">
+                    <h3 id="currentRoomInfo">객실 정보</h3>
+                    <p id="currentLanguageInfo">언어 정보</p>
+                </div>
+                <div class="chat-actions">
+                    <button class="btn btn-primary" onclick="markAsCompleted()">
+                        ✅ 완료 처리
+                    </button>
+                    <button class="btn btn-danger" onclick="leaveChat()">
+                        🚪 채팅 종료
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <h3>채팅 요청을 선택해주세요</h3>
+                    <p>왼쪽에서 채팅 요청을 클릭하면 대화를 시작할 수 있습니다.</p>
+                </div>
+            </div>
+
+            <div class="message-input-container" id="inputContainer" style="display: none;">
+                <textarea 
+                    id="messageInput" 
+                    class="message-input" 
+                    placeholder="고객에게 보낼 메시지를 입력하세요..."
+                    rows="3"
+                ></textarea>
+
+                <div class="input-actions">
+                    <div class="quick-replies">
+                        <button class="quick-reply" onclick="insertQuickReply('네, 바로 처리해드리겠습니다!')">바로 처리</button>
+                        <button class="quick-reply" onclick="insertQuickReply('확인했습니다. 잠시만 기다려주세요.')">확인했음</button>
+                        <button class="quick-reply" onclick="insertQuickReply('추가로 필요한 사항이 있으시면 말씀해주세요.')">추가 사항</button>
+                        <button class="quick-reply" onclick="insertQuickReply('문제가 해결되었습니다. 다른 도움이 필요하시면 언제든 연락주세요.')">완료</button>
+                    </div>
+                    <button class="send-button" id="sendButton" disabled onclick="sendMessage()">
+                        📤 전송
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let staffName = '호텔직원';
+        let currentRoomId = null;
+        let activeChats = new Map(); // room_id -> chat_info
+
+        // DOM 요소
+        const staffNameInput = document.getElementById('staffNameInput');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const chatRequests = document.getElementById('chatRequests');
+        const chatHeader = document.getElementById('chatHeader');
+        const chatMessages = document.getElementById('chatMessages');
+        const inputContainer = document.getElementById('inputContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // 초기화
+        function init() {
+            staffName = staffNameInput.value || '호텔직원';
+            connectSocket();
+            
+            staffNameInput.addEventListener('change', (e) => {
+                staffName = e.target.value || '호텔직원';
+            });
+
+            messageInput.addEventListener('input', validateInput);
+            messageInput.addEventListener('keydown', handleKeyDown);
+        }
+
+        // Socket.IO 연결
+        function connectSocket() {
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('서버에 연결되었습니다.');
+                updateConnectionStatus('connected');
+                
+                // 직원으로 등록
+                socket.emit('join_room', {
+                    room_id: 'staff_lobby',
+                    user_type: 'staff',
+                    staff_name: staffName
+                });
+            });
+
+            socket.on('disconnect', () => {
+                console.log('서버 연결이 끊어졌습니다.');
+                updateConnectionStatus('disconnected');
+            });
+
+            // 새로운 채팅 요청
+            socket.on('staff_request', (data) => {
+                console.log('새로운 채팅 요청:', data);
+                addChatRequest(data);
+                
+                // 알림음이나 브라우저 알림 추가 가능
+                if (Notification.permission === 'granted') {
+                    new Notification('새로운 채팅 요청', {
+                        body: `객실 ${data.room_number}에서 채팅을 요청했습니다.`,
+                        icon: '/favicon.ico'
+                    });
+                }
+            });
+
+            // 메시지 수신
+            socket.on('receive_message', (data) => {
+                console.log('메시지 수신:', data);
+                displayMessage(data);
+            });
+
+            // 시스템 메시지
+            socket.on('system_message', (data) => {
+                addSystemMessage(data.message);
+            });
+        }
+
+        // 연결 상태 업데이트
+        function updateConnectionStatus(status) {
+            switch(status) {
+                case 'connected':
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = '온라인';
+                    break;
+                case 'disconnected':
+                    statusDot.className = 'status-dot';
+                    statusText.textContent = '연결 끊어짐';
+                    break;
+            }
+        }
+
+        // 채팅 요청 추가
+        function addChatRequest(requestData) {
+            // 빈 상태 제거
+            const emptyState = chatRequests.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const requestElement = document.createElement('div');
+            requestElement.className = 'chat-request';
+            requestElement.dataset.roomId = requestData.room_id;
+            
+            const languageNames = {
+                'ko': '한국어 🇰🇷',
+                'en': 'English 🇺🇸',
+                'ja': '日本語 🇯🇵',
+                'zh': '中文 🇨🇳'
+            };
+
+            requestElement.innerHTML = `
+                <div class="request-header">
+                    <div class="room-number">🏨 객실 ${requestData.room_number}</div>
+                    <div class="language-badge">${languageNames[requestData.language] || requestData.language}</div>
+                </div>
+                <div class="request-time">${new Date().toLocaleTimeString('ko-KR')}</div>
+                <div class="request-status status-waiting">대기 중</div>
+            `;
+
+            requestElement.addEventListener('click', () => {
+                joinChatRoom(requestData);
+            });
+
+            chatRequests.insertBefore(requestElement, chatRequests.firstChild);
+            
+            // activeChats에 저장
+            activeChats.set(requestData.room_id, requestData);
+        }
+
+        // 채팅방 참여
+        function joinChatRoom(requestData) {
+            if (currentRoomId) {
+                // 이전 채팅방 나가기
+                socket.emit('leave_room', { room_id: currentRoomId });
+            }
+
+            currentRoomId = requestData.room_id;
+
+            // 새 채팅방 참여
+            socket.emit('join_room', {
+                room_id: requestData.room_id,
+                user_type: 'staff',
+                staff_name: staffName
+            });
+
+            // UI 업데이트
+            updateActiveChatRequest(requestData.room_id);
+            showChatInterface(requestData);
+            
+            console.log(`채팅방 ${requestData.room_id}에 참여했습니다.`);
+        }
+
+        // 활성 채팅 요청 표시 업데이트
+        function updateActiveChatRequest(roomId) {
+            // 모든 요청에서 active 클래스 제거
+            document.querySelectorAll('.chat-request').forEach(el => {
+                el.classList.remove('active');
+                const statusEl = el.querySelector('.request-status');
+                if (statusEl) {
+                    statusEl.className = 'request-status status-waiting';
+                    statusEl.textContent = '대기 중';
+                }
+            });
+
+            // 현재 선택된 요청에 active 클래스 추가
+            const activeRequest = document.querySelector(`[data-room-id="${roomId}"]`);
+            if (activeRequest) {
+                activeRequest.classList.add('active');
+                const statusEl = activeRequest.querySelector('.request-status');
+                if (statusEl) {
+                    statusEl.className = 'request-status status-active';
+                    statusEl.textContent = '대화 중';
+                }
+            }
+        }
+
+        // 채팅 인터페이스 표시
+        function showChatInterface(requestData) {
+            const languageNames = {
+                'ko': '한국어 🇰🇷',
+                'en': 'English 🇺🇸', 
+                'ja': '日本語 🇯🇵',
+                'zh': '中文 🇨🇳'
+            };
+
+            document.getElementById('currentRoomInfo').textContent = `🏨 객실 ${requestData.room_number}`;
+            document.getElementById('currentLanguageInfo').textContent = `언어: ${languageNames[requestData.language] || requestData.language}`;
+
+            chatHeader.style.display = 'flex';
+            inputContainer.style.display = 'block';
+
+            // 채팅 메시지 영역 초기화
+            chatMessages.innerHTML = `
+                <div class="message system">
+                    객실 ${requestData.room_number} 고객과의 채팅이 시작되었습니다.
+                </div>
+            `;
+        }
+
+        // 메시지 표시
+        function displayMessage(messageData) {
+            if (messageData.room_id !== currentRoomId) return;
+
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${messageData.sender_type}`;
+            
+            const senderName = messageData.sender_type === 'customer' ? '고객' : messageData.sender_name;
+            
+            let messageContent = `
+                <div class="message-header">${senderName} (${new Date(messageData.timestamp).toLocaleTimeString('ko-KR')})</div>
+                <div class="message-content">${messageData.original_message}</div>
+            `;
+            
+            // 번역된 메시지가 있으면 표시
+            if (messageData.translated_message && messageData.translated_message !== messageData.original_message) {
+                messageContent += `<div class="message-translation">번역: ${messageData.translated_message}</div>`;
+            }
+            
+            messageElement.innerHTML = messageContent;
+            
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 시스템 메시지 추가
+        function addSystemMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message system';
+            messageElement.textContent = message;
+            
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 빠른 답변 삽입
+        function insertQuickReply(message) {
+            messageInput.value = message;
+            validateInput();
+            messageInput.focus();
+        }
+
+        // 입력 유효성 검사
+        function validateInput() {
+            const isValid = messageInput.value.trim().length > 0;
+            sendButton.disabled = !isValid;
+        }
+
+        // 키 입력 처리
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendButton.disabled) {
+                    sendMessage();
+                }
+            }
+        }
+
+        // 메시지 전송
+        function sendMessage() {
+            if (!currentRoomId) return;
+            
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Socket으로 메시지 전송
+            socket.emit('send_message', {
+                room_id: currentRoomId,
+                message: message,
+                sender_type: 'staff',
+                sender_name: staffName,
+                language: 'ko' // 직원은 한국어로 전송
+            });
+
+            // 입력창 초기화
+            messageInput.value = '';
+            validateInput();
+        }
+
+        // 완료 처리
+        function markAsCompleted() {
+            if (!currentRoomId) return;
+            
+            // 완료 메시지 전송
+            socket.emit('send_message', {
+                room_id: currentRoomId,
+                message: '문의사항이 처리 완료되었습니다. 추가 도움이 필요하시면 언제든 연락주세요. 감사합니다!',
+                sender_type: 'staff',
+                sender_name: staffName,
+                language: 'ko'
+            });
+
+            // 잠시 후 채팅 종료
+            setTimeout(() => {
+                leaveChat();
+            }, 2000);
+        }
+
+        // 채팅 종료
+        function leaveChat() {
+            if (!currentRoomId) return;
+            
+            // 채팅방 나가기
+            socket.emit('leave_room', { room_id: currentRoomId });
+            
+            // 요청 항목 제거
+            const requestElement = document.querySelector(`[data-room-id="${currentRoomId}"]`);
+            if (requestElement) {
+                requestElement.remove();
+            }
+            
+            // activeChats에서 제거
+            activeChats.delete(currentRoomId);
+            
+            // UI 초기화
+            currentRoomId = null;
+            chatHeader.style.display = 'none';
+            inputContainer.style.display = 'none';
+            
+            chatMessages.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <h3>채팅 요청을 선택해주세요</h3>
+                    <p>왼쪽에서 채팅 요청을 클릭하면 대화를 시작할 수 있습니다.</p>
+                </div>
+            `;
+            
+            // 요청 목록이 비어있으면 빈 상태 표시
+            if (chatRequests.children.length === 0) {
+                chatRequests.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔇</div>
+                        <p>대기 중인 채팅 요청이 없습니다.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 브라우저 알림 권한 요청
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            requestNotificationPermission();
+        });
+    </script>
+</body>
+</html>

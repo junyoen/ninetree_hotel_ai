@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 - 나인트리 호텔</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-nav {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            border: 2px solid #e1e1e1;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .nav-tab:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e1e1e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .content-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .item {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.3s;
+        }
+
+        .item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .item:last-child {
+            border-bottom: none;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .room-info {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .item-content {
+            margin-bottom: 10px;
+        }
+
+        .message-box {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .translation-box {
+            background-color: #f3e5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .ai-response-box {
+            background-color: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .service-request-box {
+            background-color: #fff3e0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ff9800;
+            position: relative;
+        }
+
+        .service-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-complete {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-complete:hover {
+            background: #45a049;
+        }
+
+        .btn-assign {
+            background: #2196f3;
+            color: white;
+        }
+
+        .btn-assign:hover {
+            background: #1976d2;
+        }
+
+        .btn-urgent {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-urgent:hover {
+            background: #d32f2f;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-received {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-ai-responded {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-processing {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .status-completed {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-urgent {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .priority-high {
+            border-left-color: #f44336 !important;
+            background-color: #ffebee !important;
+        }
+
+        .priority-medium {
+            border-left-color: #ff9800 !important;
+            background-color: #fff3e0 !important;
+        }
+
+        .priority-low {
+            border-left-color: #4caf50 !important;
+            background-color: #e8f5e8 !important;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: #ccc;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle.active {
+            background: #667eea;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+
+        .toggle.active::after {
+            left: 27px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .dashboard-nav {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .section-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .service-actions {
+                flex-direction: column;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+            }
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .quick-stat {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .quick-stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .quick-stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏨 나인트리 호텔 관리자 대시보드</h1>
+        <p>실시간 고객 메시지 및 서비스 요청 모니터링 시스템</p>
+    </div>
+
+    <div class="container">
+        <!-- 대시보드 네비게이션 -->
+        <div class="dashboard-nav">
+            <div class="nav-tab active" onclick="showTab('overview')">📊 전체 현황</div>
+            <div class="nav-tab" onclick="showTab('messages')">💬 메시지 관리</div>
+            <div class="nav-tab" onclick="showTab('services')">🛎️ 서비스 요청</div>
+            <div class="nav-tab" onclick="showTab('chat-rooms')">💻 실시간 채팅</div>
+            <div class="nav-tab" onclick="showTab('analytics')">📈 통계 분석</div>
+        </div>
+
+        <!-- 전체 통계 카드들 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalMessages">0</div>
+                <div class="stat-label">총 메시지</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="aiResponses">0</div>
+                <div class="stat-label">AI 자동 응답</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="serviceRequests">0</div>
+                <div class="stat-label">서비스 요청</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingTasks">0</div>
+                <div class="stat-label">처리 대기</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="responseRate">0%</div>
+                <div class="stat-label">응답률</div>
+            </div>
+        </div>
+
+        <!-- 전체 현황 탭 -->
+        <div id="overview" class="tab-content active">
+            <div class="quick-stats">
+                <div class="quick-stat">
+                    <div class="quick-stat-number" id="todayMessages">0</div>
+                    <div class="quick-stat-label">오늘 메시지</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="quick-stat-number" id="activeChats">0</div>
+                    <div class="quick-stat-label">활성 채팅</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="quick-stat-number" id="urgentRequests">0</div>
+                    <div class="quick-stat-label">긴급 요청</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="quick-stat-number" id="completedToday">0</div>
+                    <div class="quick-stat-label">오늘 완료</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">🚨 긴급 처리 필요</h2>
+                    <button class="refresh-btn" onclick="refreshUrgentTasks()">🔄 새로고침</button>
+                </div>
+                <div class="content-container" id="urgentTasksContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <h3>긴급 처리 필요한 항목이 없습니다</h3>
+                        <p>모든 요청이 적절히 처리되고 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메시지 관리 탭 -->
+        <div id="messages" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">📱 실시간 메시지</h2>
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div class="auto-refresh">
+                            <span>자동 새로고침</span>
+                            <div class="toggle active" id="autoRefreshToggle"></div>
+                        </div>
+                        <button class="refresh-btn" onclick="refreshMessages()">🔄 새로고침</button>
+                    </div>
+                </div>
+                
+                <div class="filter-controls">
+                    <select class="filter-select" id="languageFilter" onchange="filterMessages()">
+                        <option value="">모든 언어</option>
+                        <option value="ko">한국어</option>
+                        <option value="en">English</option>
+                        <option value="ja">日本語</option>
+                        <option value="zh">中文</option>
+                    </select>
+                    <select class="filter-select" id="statusFilter" onchange="filterMessages()">
+                        <option value="">모든 상태</option>
+                        <option value="received">접수됨</option>
+                        <option value="ai_responded">AI 응답</option>
+                        <option value="needs_staff">직원 필요</option>
+                        <option value="completed">완료</option>
+                    </select>
+                </div>
+                
+                <div class="content-container" id="messagesContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>아직 메시지가 없습니다</h3>
+                        <p>고객이 메시지를 보내면 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서비스 요청 관리 탭 -->
+        <div id="services" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">🛎️ 서비스 요청 관리</h2>
+                    <button class="refresh-btn" onclick="refreshServiceRequests()">🔄 새로고침</button>
+                </div>
+                
+                <div class="filter-controls">
+                    <select class="filter-select" id="priorityFilter" onchange="filterServiceRequests()">
+                        <option value="">모든 우선순위</option>
+                        <option value="high">높음</option>
+                        <option value="medium">보통</option>
+                        <option value="low">낮음</option>
+                    </select>
+                    <select class="filter-select" id="serviceStatusFilter" onchange="filterServiceRequests()">
+                        <option value="">모든 상태</option>
+                        <option value="pending">처리 대기</option>
+                        <option value="in-progress">처리 중</option>
+                        <option value="completed">완료</option>
+                    </select>
+                    <select class="filter-select" id="serviceTypeFilter" onchange="filterServiceRequests()">
+                        <option value="">모든 유형</option>
+                        <option value="housekeeping">하우스키핑</option>
+                        <option value="room-service">룸서비스</option>
+                        <option value="maintenance">시설 관리</option>
+                        <option value="concierge">컨시어지</option>
+                    </select>
+                </div>
+                
+                <div class="content-container" id="serviceRequestsContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛎️</div>
+                        <h3>서비스 요청이 없습니다</h3>
+                        <p>고객의 서비스 요청이 있으면 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실시간 채팅 탭 -->
+        <div id="chat-rooms" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">💻 활성 채팅방</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="refresh-btn" onclick="refreshChatRooms()">🔄 새로고침</button>
+                        <button class="refresh-btn" onclick="openStaffChat()" style="background: #4caf50;">👨‍💼 직원 채팅 열기</button>
+                    </div>
+                </div>
+                
+                <div class="content-container" id="chatRoomsContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <h3>활성 채팅방이 없습니다</h3>
+                        <p>고객이 직원 채팅을 요청하면 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 통계 분석 탭 -->
+        <div id="analytics" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">📈 운영 통계</h2>
+                    <button class="refresh-btn" onclick="refreshAnalytics()">🔄 새로고침</button>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="avgResponseTime">0분</div>
+                        <div class="stat-label">평균 응답 시간</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="customerSatisfaction">0%</div>
+                        <div class="stat-label">고객 만족도</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="busyHours">오후 2시</div>
+                        <div class="stat-label">최고 바쁜 시간</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="topLanguage">한국어</div>
+                        <div class="stat-label">최다 사용 언어</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let autoRefresh = true;
+        let refreshInterval;
+        let lastMessageCount = 0;
+        let currentTab = 'overview';
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshAllData();
+            startAutoRefresh();
+            
+            // 자동 새로고침 토글
+            document.getElementById('autoRefreshToggle').addEventListener('click', toggleAutoRefresh);
+        });
+
+        // 탭 전환
+        function showTab(tabName) {
+            // 모든 탭 숨기기
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 모든 네비게이션 탭에서 active 클래스 제거
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 선택된 탭 표시
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            currentTab = tabName;
+            
+            // 탭별 데이터 로드
+            switch(tabName) {
+                case 'overview':
+                    refreshOverview();
+                    break;
+                case 'messages':
+                    refreshMessages();
+                    break;
+                case 'services':
+                    refreshServiceRequests();
+                    break;
+                case 'chat-rooms':
+                    refreshChatRooms();
+                    break;
+                case 'analytics':
+                    refreshAnalytics();
+                    break;
+            }
+        }
+
+        // 전체 데이터 새로고침
+        async function refreshAllData() {
+            try {
+                await Promise.all([
+                    refreshOverview(),
+                    refreshMessages(),
+                    refreshServiceRequests(),
+                    refreshChatRooms()
+                ]);
+            } catch (error) {
+                console.error('데이터 새로고침 실패:', error);
+                showNotification('데이터 로드 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 전체 현황 새로고침
+        async function refreshOverview() {
+            try {
+                const response = await fetch('/api/messages');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateOverviewStats(data.messages);
+                    updateUrgentTasks(data.messages);
+                }
+            } catch (error) {
+                console.error('전체 현황 새로고침 실패:', error);
+            }
+        }
+
+        // 전체 현황 통계 업데이트
+        function updateOverviewStats(messages) {
+            const totalMessages = messages.length;
+            const aiResponses = messages.filter(msg => msg.ai_response && !msg.requires_staff).length;
+            const serviceRequests = messages.filter(msg => msg.requires_staff).length;
+            const pendingTasks = messages.filter(msg => msg.status === 'needs_staff' || msg.status === 'received').length;
+            const responseRate = totalMessages > 0 ? Math.round((aiResponses / totalMessages) * 100) : 0;
+
+            document.getElementById('totalMessages').textContent = totalMessages;
+            document.getElementById('aiResponses').textContent = aiResponses;
+            document.getElementById('serviceRequests').textContent = serviceRequests;
+            document.getElementById('pendingTasks').textContent = pendingTasks;
+            document.getElementById('responseRate').textContent = responseRate + '%';
+
+            // 빠른 통계도 업데이트
+            const today = new Date().toDateString();
+            const todayMessages = messages.filter(msg => new Date(msg.timestamp).toDateString() === today).length;
+            const urgentRequests = messages.filter(msg => msg.requires_staff && msg.status !== 'completed').length;
+            const completedToday = messages.filter(msg => msg.status === 'completed' && new Date(msg.timestamp).toDateString() === today).length;
+
+            document.getElementById('todayMessages').textContent = todayMessages;
+            document.getElementById('urgentRequests').textContent = urgentRequests;
+            document.getElementById('completedToday').textContent = completedToday;
+        }
+
+        // 긴급 작업 업데이트
+        function updateUrgentTasks(messages) {
+            const urgentTasks = messages.filter(msg => 
+                msg.requires_staff && 
+                (msg.status === 'needs_staff' || msg.status === 'received')
+            );
+
+            const container = document.getElementById('urgentTasksContainer');
+            
+            if (urgentTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <h3>긴급 처리 필요한 항목이 없습니다</h3>
+                        <p>모든 요청이 적절히 처리되고 있습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = urgentTasks.map(task => `
+                <div class="item">
+                    <div class="item-header">
+                        <div class="room-info">🏨 객실 ${task.room_number}</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="status-badge status-urgent">긴급</span>
+                            <div class="timestamp">${formatTimestamp(task.timestamp)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item-content">
+                        <div class="service-request-box priority-high">
+                            <strong>🚨 긴급 요청:</strong><br>
+                            ${task.original_message}
+                            ${task.translated_message ? `<br><small>번역: ${task.translated_message}</small>` : ''}
+                            
+                            <div class="service-actions">
+                                <button class="btn btn-complete" onclick="markTaskCompleted(${task.id})">
+                                    ✅ 완료 처리
+                                </button>
+                                <button class="btn btn-assign" onclick="assignToStaff(${task.id})">
+                                    👨‍💼 직원 배정
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 메시지 목록 새로고침
+        async function refreshMessages() {
+            try {
+                const response = await fetch('/api/messages');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderMessages(data.messages);
+                    
+                    // 새 메시지 알림
+                    if (data.messages.length > lastMessageCount && lastMessageCount > 0) {
+                        showNotification(`새로운 메시지 ${data.messages.length - lastMessageCount}건이 도착했습니다! 📢`);
+                    }
+                    lastMessageCount = data.messages.length;
+                }
+            } catch (error) {
+                console.error('메시지 새로고침 실패:', error);
+                showNotification('메시지를 불러오는데 실패했습니다.', 'error');
+            }
+        }
+
+        // 메시지 렌더링
+        function renderMessages(messages) {
+            const container = document.getElementById('messagesContainer');
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>아직 메시지가 없습니다</h3>
+                        <p>고객이 메시지를 보내면 여기에 표시됩니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 최신 메시지가 위에 오도록 정렬
+            const sortedMessages = messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            container.innerHTML = sortedMessages.map(message => `
+                <div class="item">
+                    <div class="item-header">
+                        <div class="room-info">🏨 객실 ${message.room_number}</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="status-badge status-${message.status.replace('_', '-')}">${getStatusText(message.status)}</span>
+                            <div class="timestamp">${formatTimestamp(message.timestamp)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item-content">
+                        <div class="message-box">
+                            <strong>📝 원본 메시지:</strong><br>
+                            ${message.original_message}
+                        </div>
+                        
+                        ${message.translated_message ? `
+                            <div class="translation-box">
+                                <strong>🔄 번역된 메시지:</strong><br>
+                                ${message.translated_message}
+                            </div>
+                        ` : ''}
+                        
+                        ${message.ai_response ? `
+                            <div class="ai-response-box">
+                                <strong>🤖 AI 응답:</strong><br>
+                                ${message.ai_response}
+                            </div>
+                        ` : ''}
+                        
+                        ${message.requires_staff ? `
+                            <div class="service-request-box">
+                                <strong>👨‍💼 직원 처리 필요:</strong> 서비스 요청 항목
+                                <div class="service-actions">
+                                    <button class="btn btn-complete" onclick="markTaskCompleted(${message.id})">
+                                        ✅ 완료
+                                    </button>
+                                    <button class="btn btn-assign" onclick="assignToStaff(${message.id})">
+                                        👨‍💼 배정
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 서비스 요청 새로고침
+        async function refreshServiceRequests() {
+            try {
+                const response = await fetch('/api/messages');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const serviceRequests = data.messages.filter(msg => msg.requires_staff);
+                    renderServiceRequests(serviceRequests);
+                }
+            } catch (error) {
+                console.error('서비스 요청 새로고침 실패:', error);
+            }
+        }
+
+        // 서비스 요청 렌더링
+        function renderServiceRequests(requests) {
+            const container = document.getElementById('serviceRequestsContainer');
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛎️</div>
+                        <h3>서비스 요청이 없습니다</h3>
+                        <p>고객의 서비스 요청이 있으면 여기에 표시됩니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = requests.map(request => {
+                const priority = getServicePriority(request.original_message);
+                const serviceType = getServiceType(request.original_message);
+                
+                return `
+                    <div class="item">
+                        <div class="item-header">
+                            <div class="room-info">🏨 객실 ${request.room_number}</div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="status-badge status-${request.status.replace('_', '-')}">${getStatusText(request.status)}</span>
+                                <div class="timestamp">${formatTimestamp(request.timestamp)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="item-content">
+                            <div class="service-request-box priority-${priority}" data-service-type="${serviceType}" data-priority="${priority}">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <strong>🛎️ ${getServiceTypeText(serviceType)} 요청</strong>
+                                    <span class="status-badge" style="background: ${getPriorityColor(priority)}; color: white;">
+                                        ${getPriorityText(priority)}
+                                    </span>
+                                </div>
+                                
+                                <div style="margin-bottom: 10px;">
+                                    ${request.original_message}
+                                    ${request.translated_message ? `<br><small>번역: ${request.translated_message}</small>` : ''}
+                                </div>
+                                
+                                <div class="service-actions">
+                                    <button class="btn btn-complete" onclick="markServiceCompleted(${request.id})">
+                                        ✅ 완료
+                                    </button>
+                                    <button class="btn btn-assign" onclick="assignService(${request.id})">
+                                        👨‍💼 배정
+                                    </button>
+                                    ${priority === 'low' ? `
+                                        <button class="btn btn-urgent" onclick="markAsUrgent(${request.id})">
+                                            🚨 긴급으로 변경
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 채팅방 목록 새로고침
+        async function refreshChatRooms() {
+            try {
+                const response = await fetch('/api/chat-rooms');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderChatRooms(data.chat_rooms);
+                    document.getElementById('activeChats').textContent = data.chat_rooms.length;
+                }
+            } catch (error) {
+                console.error('채팅방 새로고침 실패:', error);
+            }
+        }
+
+        // 채팅방 렌더링
+        function renderChatRooms(chatRooms) {
+            const container = document.getElementById('chatRoomsContainer');
+            
+            if (chatRooms.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <h3>활성 채팅방이 없습니다</h3>
+                        <p>고객이 직원 채팅을 요청하면 여기에 표시됩니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = chatRooms.map(room => `
+                <div class="item">
+                    <div class="item-header">
+                        <div class="room-info">💬 객실 ${room.room_number}</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="status-badge ${room.staff_sid ? 'status-completed' : 'status-processing'}">
+                                ${room.staff_sid ? '대화 중' : '대기 중'}
+                            </span>
+                            <div class="timestamp">${formatTimestamp(room.created_at)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item-content">
+                        <div class="message-box">
+                            <strong>🌐 언어:</strong> ${getLanguageName(room.language)}<br>
+                            <strong>👨‍💼 담당 직원:</strong> ${room.staff_name || '배정 대기'}<br>
+                            <strong>📍 채팅방 ID:</strong> ${room.room_id}
+                        </div>
+                        
+                        <div class="service-actions">
+                            ${!room.staff_sid ? `
+                                <button class="btn btn-assign" onclick="joinChatRoom('${room.room_id}')">
+                                    💬 채팅 참여
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-complete" onclick="closeChatRoom('${room.room_id}')">
+                                🚪 채팅 종료
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 통계 분석 새로고침
+        async function refreshAnalytics() {
+            // 실제로는 더 복잡한 분석 API를 호출할 것임
+            // 여기서는 예시 데이터를 표시
+            document.getElementById('avgResponseTime').textContent = '2.3분';
+            document.getElementById('customerSatisfaction').textContent = '94%';
+            document.getElementById('busyHours').textContent = '오후 2-4시';
+            document.getElementById('topLanguage').textContent = '한국어';
+        }
+
+        // 유틸리티 함수들
+        function getStatusText(status) {
+            const statusMap = {
+                'received': '접수됨',
+                'ai_responded': 'AI 응답',
+                'needs_staff': '직원 필요',
+                'completed': '완료'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return '방금 전';
+            if (diffMins < 60) return `${diffMins}분 전`;
+            if (diffMins < 1440) return `${Math.floor(diffMins / 60)}시간 전`;
+            
+            return date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
+        }
+
+        function getServicePriority(message) {
+            const urgentKeywords = ['급해', '빨리', '긴급', 'urgent', 'asap', '今すぐ', '急ぎ', '紧急', '快'];
+            const lowPriorityKeywords = ['천천히', '나중에', 'later', 'when convenient', '後で', '慢点'];
+            
+            const messageLower = message.toLowerCase();
+            
+            if (urgentKeywords.some(keyword => messageLower.includes(keyword))) {
+                return 'high';
+            }
+            if (lowPriorityKeywords.some(keyword => messageLower.includes(keyword))) {
+                return 'low';
+            }
+            return 'medium';
+        }
+
+        function getServiceType(message) {
+            const messageLower = message.toLowerCase();
+            
+            if (messageLower.includes('타올') || messageLower.includes('towel') || messageLower.includes('청소') || messageLower.includes('cleaning')) {
+                return 'housekeeping';
+            }
+            if (messageLower.includes('음식') || messageLower.includes('food') || messageLower.includes('룸서비스') || messageLower.includes('room service')) {
+                return 'room-service';
+            }
+            if (messageLower.includes('고장') || messageLower.includes('문제') || messageLower.includes('repair') || messageLower.includes('broken')) {
+                return 'maintenance';
+            }
+            return 'concierge';
+        }
+
+        function getServiceTypeText(type) {
+            const typeMap = {
+                'housekeeping': '하우스키핑',
+                'room-service': '룸서비스',
+                'maintenance': '시설관리',
+                'concierge': '컨시어지'
+            };
+            return typeMap[type] || '기타';
+        }
+
+        function getPriorityText(priority) {
+            const priorityMap = {
+                'high': '높음',
+                'medium': '보통',
+                'low': '낮음'
+            };
+            return priorityMap[priority] || '보통';
+        }
+
+        function getPriorityColor(priority) {
+            const colorMap = {
+                'high': '#f44336',
+                'medium': '#ff9800',
+                'low': '#4caf50'
+            };
+            return colorMap[priority] || '#ff9800';
+        }
+
+        function getLanguageName(lang) {
+            const langMap = {
+                'ko': '한국어 🇰🇷',
+                'en': 'English 🇺🇸',
+                'ja': '日本語 🇯🇵',
+                'zh': '中文 🇨🇳'
+            };
+            return langMap[lang] || lang;
+        }
+
+        // ✅ 작업 완료 처리 함수 - 실제 API 호출 구현
+        async function markTaskCompleted(taskId) {
+            if (confirm('이 작업을 완료로 처리하시겠습니까?')) {
+                try {
+                    const response = await fetch(`/api/service-requests/${taskId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            status: 'completed',
+                            assigned_staff: '시스템 관리자'
+                        })
+                    });
+
+                    const result = await response.json();
+            
+                    if (result.success) {
+                        showNotification('작업이 완료로 처리되었습니다.', 'success');
+                
+                        // 🔄 즉시 화면 업데이트
+                        setTimeout(() => {
+                            refreshAllData();
+                        }, 500);
+                    } else {
+                        showNotification('작업 완료 처리에 실패했습니다.', 'error');
+                    }
+                } catch (error) {
+                    console.error('완료 처리 오류:', error);
+                    showNotification('서버 오류가 발생했습니다.', 'error');
+                }
+            }
+        }
+
+        // ✅ 서비스 완료 처리 함수 - 실제 API 호출 구현
+        async function markServiceCompleted(serviceId) {
+            if (confirm('이 서비스 요청을 완료로 처리하시겠습니까?')) {
+                try {
+                    const response = await fetch(`/api/service-requests/${serviceId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            status: 'completed',
+                            assigned_staff: '시스템 관리자'
+                        })
+                    });
+
+                    const result = await response.json();
+            
+                    if (result.success) {
+                        showNotification('서비스 요청이 완료로 처리되었습니다.', 'success');
+                
+                        // 🔄 즉시 화면 업데이트
+                        setTimeout(() => {
+                            refreshServiceRequests();
+                            refreshOverview(); // 통계도 함께 업데이트
+                        }, 500);
+                    } else {
+                        showNotification('서비스 완료 처리에 실패했습니다.', 'error');
+                    }
+                } catch (error) {
+                    console.error('서비스 완료 오류:', error);
+                    showNotification('서버 오류가 발생했습니다.', 'error');
+                }
+            }
+        }
+
+        // ✅ 직원 배정 함수 - 실제 API 호출 구현
+        async function assignToStaff(taskId) {
+            const staffName = prompt('담당 직원 이름을 입력하세요:');
+            if (staffName && staffName.trim()) {
+                try {
+                    const response = await fetch(`/api/service-requests/${taskId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            status: 'in-progress',
+                            assigned_staff: staffName.trim()
+                        })
+                    });
+
+                    const result = await response.json();
+            
+                    if (result.success) {
+                        showNotification(`${staffName}에게 작업이 배정되었습니다.`, 'success');
+                
+                        // 🔄 즉시 화면 업데이트
+                        setTimeout(() => {
+                            refreshAllData();
+                        }, 500);
+                    } else {
+                        showNotification('직원 배정에 실패했습니다.', 'error');
+                    }
+                } catch (error) {
+                    console.error('직원 배정 오류:', error);
+                    showNotification('서버 오류가 발생했습니다.', 'error');
+                }
+            }
+        }
+
+        // ✅ 서비스 배정 함수 - 실제 API 호출 구현
+        async function assignService(serviceId) {
+            const staffName = prompt('담당 직원 이름을 입력하세요:');
+            if (staffName && staffName.trim()) {
+                try {
+                    const response = await fetch(`/api/service-requests/${serviceId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            status: 'in-progress',
+                            assigned_staff: staffName.trim()
+                        })
+                    });
+
+                    const result = await response.json();
+            
+                    if (result.success) {
+                        showNotification(`${staffName}에게 서비스가 배정되었습니다.`, 'success');
+                
+                        // 🔄 즉시 화면 업데이트
+                        setTimeout(() => {
+                            refreshServiceRequests();
+                            refreshOverview();
+                        }, 500);
+                    } else {
+                        showNotification('서비스 배정에 실패했습니다.', 'error');
+                    }
+                } catch (error) {
+                    console.error('서비스 배정 오류:', error);
+                    showNotification('서버 오류가 발생했습니다.', 'error');
+                }
+            }
+        }
+
+        // ✅ 긴급 처리 함수 - 실제 API 호출 구현
+        async function markAsUrgent(serviceId) {
+            if (confirm('이 서비스 요청을 긴급으로 변경하시겠습니까?')) {
+                try {
+                    // 🚨 우선순위를 high로 변경하는 API가 없으므로 임시로 status 변경
+                    const response = await fetch(`/api/service-requests/${serviceId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            status: 'urgent',
+                            assigned_staff: '긴급 처리 대기'
+                        })
+                    });
+
+                    const result = await response.json();
+            
+                    if (result.success) {
+                        showNotification('서비스 요청이 긴급으로 변경되었습니다.', 'success');
+                
+                        // 🔄 즉시 화면 업데이트
+                        setTimeout(() => {
+                            refreshServiceRequests();
+                            refreshOverview();
+                        }, 500);
+                    } else {
+                        showNotification('긴급 처리 변경에 실패했습니다.', 'error');
+                    }
+                } catch (error) {
+                    console.error('긴급 처리 오류:', error);
+                    showNotification('서버 오류가 발생했습니다.', 'error');
+                }
+            }
+        }
+
+        function joinChatRoom(roomId) {
+            window.open(`/staff-chat?room_id=${roomId}`, '_blank');
+        }
+
+        function closeChatRoom(roomId) {
+            if (confirm('이 채팅방을 종료하시겠습니까?')) {
+                // TODO: API 호출로 채팅방 종료
+                console.log('채팅방 종료:', roomId);
+                showNotification('채팅방이 종료되었습니다.');
+                setTimeout(() => refreshChatRooms(), 1000);
+            }
+        }
+
+        function openStaffChat() {
+            window.open('/staff-chat', '_blank');
+        }
+
+        // 필터링 함수들
+        function filterMessages() {
+            const languageFilter = document.getElementById('languageFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            // TODO: 필터 적용 로직 구현
+            console.log('메시지 필터:', languageFilter, statusFilter);
+        }
+
+        function filterServiceRequests() {
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            const statusFilter = document.getElementById('serviceStatusFilter').value;
+            const typeFilter = document.getElementById('serviceTypeFilter').value;
+            
+            const items = document.querySelectorAll('#serviceRequestsContainer .item');
+            
+            items.forEach(item => {
+                const serviceBox = item.querySelector('.service-request-box');
+                if (!serviceBox) return;
+                
+                const priority = serviceBox.dataset.priority;
+                const serviceType = serviceBox.dataset.serviceType;
+                
+                let show = true;
+                
+                if (priorityFilter && priority !== priorityFilter) show = false;
+                if (typeFilter && serviceType !== typeFilter) show = false;
+                
+                item.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        // 알림 표시
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // 자동 새로고침 관리
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            
+            if (autoRefresh) {
+                refreshInterval = setInterval(() => {
+                    if (currentTab === 'overview') refreshOverview();
+                    else if (currentTab === 'messages') refreshMessages();
+                    else if (currentTab === 'services') refreshServiceRequests();
+                    else if (currentTab === 'chat-rooms') refreshChatRooms();
+                }, 5000); // 5초마다
+            }
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const toggle = document.getElementById('autoRefreshToggle');
+            
+            if (autoRefresh) {
+                toggle.classList.add('active');
+                startAutoRefresh();
+                showNotification('자동 새로고침이 활성화되었습니다.');
+            } else {
+                toggle.classList.remove('active');
+                clearInterval(refreshInterval);
+                showNotification('자동 새로고침이 비활성화되었습니다.');
+            }
+        }
+
+        // 페이지 가시성 변경 시 자동 새로고침 조절
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearInterval(refreshInterval);
+            } else if (autoRefresh) {
+                startAutoRefresh();
+                refreshAllData(); // 페이지로 돌아왔을 때 즉시 새로고침
+            }
+        });
+
+        // 긴급 작업 새로고침
+        function refreshUrgentTasks() {
+            refreshOverview();
+        }
+    </script>
+</body>
+</html>

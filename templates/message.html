@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메시지 작성 - 나인트리 호텔</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .room-info {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e1e1e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .room-details p {
+            margin: 2px 0;
+            font-size: 16px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+
+        .status-dot.connected {
+            background-color: #4caf50;
+        }
+
+        .status-dot.connecting {
+            background-color: #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-mode-selector {
+            padding: 15px 20px;
+            background-color: #fff3cd;
+            border-bottom: 1px solid #e1e1e1;
+            text-align: center;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background-color: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.ai {
+            background-color: white;
+            color: #333;
+            border: 1px solid #e1e1e1;
+        }
+
+        .message.staff {
+            background-color: #e8f5e8;
+            color: #333;
+            border: 1px solid #c8e6c9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .message.system {
+            background-color: #e9ecef;
+            color: #666;
+            text-align: center;
+            font-size: 14px;
+            margin: 10px auto;
+            max-width: 100%;
+        }
+
+        .message-header {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .message.staff .message-header {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .staff-indicator {
+            background-color: #4caf50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .message-input-container {
+            padding: 20px;
+            background-color: white;
+            border-top: 1px solid #e1e1e1;
+        }
+
+        .message-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            min-width: 100px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-staff {
+            background-color: #28a745;
+            color: white;
+            min-width: 120px;
+        }
+
+        .btn-staff:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        .typing-indicator {
+            padding: 10px 20px;
+            font-style: italic;
+            color: #666;
+            font-size: 14px;
+            display: none;
+        }
+
+        .typing-indicator.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            background-color: #f8f9fa;
+            border: 1px solid #e1e1e1;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-action:hover {
+            background-color: #e9ecef;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+            }
+
+            .room-info {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .mode-buttons {
+                flex-direction: column;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .chat-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏨 나인트리 호텔</h1>
+            <p>AI 메시지 컨시어지</p>
+        </div>
+
+        <div class="room-info">
+            <div class="room-details">
+                <p id="roomInfo"><strong>객실:</strong> <span id="roomNumber">-</span></p>
+                <p id="languageInfo"><strong>언어:</strong> <span id="selectedLanguage">-</span></p>
+            </div>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">연결 중...</span>
+            </div>
+        </div>
+
+        <div class="chat-mode-selector" id="chatModeSelector">
+            <p><strong>💡 서비스 모드를 선택해주세요</strong></p>
+            <div class="mode-buttons">
+                <button class="mode-btn active" id="aiMode" onclick="setMode('ai')">
+                    🤖 AI 자동 응답
+                </button>
+                <button class="mode-btn" id="staffMode" onclick="setMode('staff')">
+                    👨‍💼 직원과 채팅
+                </button>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="message system">
+                안녕하세요! 무엇을 도와드릴까요? 🤖<br>
+                <small>간단한 질문은 AI가, 복잡한 문의는 직원이 도움드립니다.</small>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            AI가 응답을 생성하고 있습니다...
+        </div>
+
+        <div class="loading" id="loadingIndicator">
+            처리 중입니다...
+        </div>
+
+        <div class="message-input-container">
+            <div class="quick-actions">
+                <button class="quick-action" onclick="insertQuickMessage('WiFi 비밀번호가 뭔가요?')">WiFi 비밀번호</button>
+                <button class="quick-action" onclick="insertQuickMessage('체크아웃 시간이 언제인가요?')">체크아웃 시간</button>
+                <button class="quick-action" onclick="insertQuickMessage('조식은 몇 시부터인가요?')">조식 시간</button>
+                <button class="quick-action" onclick="insertQuickMessage('수영장 이용 시간을 알고 싶어요')">수영장 시간</button>
+                <button class="quick-action" onclick="insertQuickMessage('주차장은 어디에 있나요?')">주차장 위치</button>
+                <button class="quick-action" onclick="insertQuickMessage('타올을 더 주실 수 있나요?')">타올 요청</button>
+            </div>
+
+            <textarea 
+                id="messageInput" 
+                class="message-input" 
+                placeholder="메시지를 입력하세요..."
+                rows="3"
+            ></textarea>
+
+            <div class="button-group">
+                <button type="button" class="btn btn-secondary" onclick="goBack()">
+                    뒤로가기
+                </button>
+                <button type="button" class="btn btn-primary" id="sendButton" disabled>
+                    메시지 전송
+                </button>
+                <button type="button" class="btn btn-staff" id="requestStaffButton" onclick="requestStaff()" style="display: none;">
+                    직원 연결
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 정보 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomNumber = urlParams.get('room');
+        const selectedLanguage = urlParams.get('lang');
+
+        // 전역 변수
+        let socket;
+        let currentMode = 'ai'; // 'ai' 또는 'staff'
+        let currentRoomId = null;
+        let isConnectedToStaff = false;
+
+        // DOM 요소
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const chatContainer = document.getElementById('chatContainer');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const requestStaffButton = document.getElementById('requestStaffButton');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        // 언어 표시 텍스트
+        const languageNames = {
+            'ko': '한국어 🇰🇷',
+            'en': 'English 🇺🇸',
+            'ja': '日本語 🇯🇵',
+            'zh': '中文 🇨🇳'
+        };
+
+        // 다국어 텍스트
+        const translations = {
+            'ko': {
+                messagePlaceholder: '메시지를 입력하세요...',
+                backButton: '뒤로가기',
+                sendButton: '메시지 전송',
+                staffButton: '직원 연결',
+                aiThinking: 'AI가 응답을 생성하고 있습니다...',
+                staffConnecting: '직원 연결을 요청했습니다...',
+                staffConnected: '직원과 연결되었습니다!',
+                connectionLost: '연결이 끊어졌습니다. 재연결 중...'
+            },
+            'en': {
+                messagePlaceholder: 'Enter your message...',
+                backButton: 'Back',
+                sendButton: 'Send Message',
+                staffButton: 'Connect Staff',
+                aiThinking: 'AI is generating response...',
+                staffConnecting: 'Requesting staff connection...',
+                staffConnected: 'Connected to staff!',
+                connectionLost: 'Connection lost. Reconnecting...'
+            },
+            'ja': {
+                messagePlaceholder: 'メッセージを入力してください...',
+                backButton: '戻る',
+                sendButton: 'メッセージを送信',
+                staffButton: 'スタッフ接続',
+                aiThinking: 'AIが返答を生成しています...',
+                staffConnecting: 'スタッフ接続を要求しました...',
+                staffConnected: 'スタッフと接続されました！',
+                connectionLost: '接続が切れました。再接続中...'
+            },
+            'zh': {
+                messagePlaceholder: '请输入信息...',
+                backButton: '返回',
+                sendButton: '发送信息',
+                staffButton: '连接员工',
+                aiThinking: 'AI正在生成回复...',
+                staffConnecting: '已请求员工连接...',
+                staffConnected: '已与员工连接！',
+                connectionLost: '连接断开。重新连接中...'
+            }
+        };
+
+        // 페이지 초기화
+        function initializePage() {
+            // 필수 요소 존재 확인
+            const roomNumberElement = document.getElementById('roomNumber');
+            const selectedLanguageElement = document.getElementById('selectedLanguage');
+            
+            if (!roomNumberElement || !selectedLanguageElement) {
+                console.error('Required HTML elements not found');
+                return;
+            }
+            
+            roomNumberElement.textContent = roomNumber || '?';
+            selectedLanguageElement.textContent = languageNames[selectedLanguage] || 'Unknown';
+            
+            // 언어별 UI 텍스트 적용
+            const texts = translations[selectedLanguage] || translations['ko'];
+
+            // 기본 UI 요소들 안전하게 업데이트
+            if (messageInput) {
+                messageInput.placeholder = texts.messagePlaceholder;
+            }
+            if (sendButton) {
+                sendButton.textContent = texts.sendButton;
+            }
+            if (requestStaffButton) {
+                requestStaffButton.textContent = texts.staffButton;
+            }
+            
+            const backBtn = document.querySelector('.btn-secondary');
+            if (backBtn) {
+                backBtn.textContent = texts.backButton;
+            }
+
+            // 모드 버튼 텍스트 업데이트
+            updateModeButtonTexts();
+
+            // 빠른 액션 버튼들 언어별 업데이트
+            updateQuickActionButtons();
+
+            // Socket.IO 연결
+            connectSocket();
+        }
+
+        // 🔧 수정된 모드 버튼 텍스트 업데이트 함수
+        function updateModeButtonTexts() {
+            const modeTexts = {
+                'ko': {
+                    aiMode: '🤖 AI 자동 응답',
+                    staffMode: '👨‍💼 직원과 채팅'
+                },
+                'en': {
+                    aiMode: '🤖 AI Auto Response',
+                    staffMode: '👨‍💼 Chat with Staff'
+                },
+                'ja': {
+                    aiMode: '🤖 AI自動応答',
+                    staffMode: '👨‍💼 スタッフとチャット'
+                },
+                'zh': {
+                    aiMode: '🤖 AI自动回复',
+                    staffMode: '👨‍💼 与员工聊天'
+                }
+            };
+            
+            const currentTexts = modeTexts[selectedLanguage] || modeTexts['ko'];
+            
+            // 🔧 안전한 요소 접근 (오타 수정: aimode → aiMode)
+            const aiModeBtn = document.getElementById('aiMode');
+            const staffModeBtn = document.getElementById('staffMode');
+            
+            if (aiModeBtn) {
+                aiModeBtn.innerHTML = currentTexts.aiMode;
+            }
+            if (staffModeBtn) {
+                staffModeBtn.innerHTML = currentTexts.staffMode;
+            }
+        }
+
+        // 빠른 액션 버튼 업데이트 함수
+        function updateQuickActionButtons() {
+            const quickActions = {
+                'ko': [
+                    'WiFi 비밀번호가 뭔가요?',
+                    '체크아웃 시간이 언제인가요?',
+                    '조식은 몇 시부터인가요?',
+                    '수영장 이용 시간을 알고 싶어요',
+                    '주차장은 어디에 있나요?',
+                    '타올을 더 주실 수 있나요?'
+                ],
+                'en': [
+                    'What is the WiFi password?',
+                    'What time is check-out?',
+                    'What time is breakfast?',
+                    'What are the pool hours?',
+                    'Where is the parking?',
+                    'Can I get more towels?'
+                ],
+                'ja': [
+                    'WiFiのパスワードは何ですか？',
+                    'チェックアウト時間は何時ですか？',
+                    '朝食は何時からですか？',
+                    'プールの利用時間を教えてください',
+                    '駐車場はどこですか？',
+                    'タオルをもっといただけますか？'
+                ],
+                'zh': [
+                    'WiFi密码是什么？',
+                    '退房时间是几点？',
+                    '早餐几点开始？',
+                    '游泳池开放时间？',
+                    '停车场在哪里？',
+                    '可以再给一些毛巾吗？'
+                ]
+            };
+            
+            const actions = quickActions[selectedLanguage] || quickActions['ko'];
+            const quickActionElements = document.querySelectorAll('.quick-action');
+
+            quickActionElements.forEach((element, index) => {
+                if (actions[index]) {
+                    element.textContent = actions[index];
+                    element.onclick = () => insertQuickMessage(actions[index]);
+                }
+            });
+        }
+
+        // Socket.IO 연결
+        function connectSocket() {
+            try {
+                socket = io();
+
+                socket.on('connect', () => {
+                    console.log('서버에 연결되었습니다.');
+                    updateConnectionStatus('connected');
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('서버 연결이 끊어졌습니다.');
+                    updateConnectionStatus('disconnected');
+                });
+
+                // 메시지 수신
+                socket.on('receive_message', (data) => {
+                    console.log('메시지 수신:', data);
+                    displayMessage(data);
+                });
+
+                // 직원 참여 알림
+                socket.on('staff_joined', (data) => {
+                    console.log('직원 참여:', data);
+                    isConnectedToStaff = true;
+                    addMessage(data.message, 'system');
+                    addStaffIndicator();
+                    updateConnectionStatus('staff_connected');
+                });
+
+                // 시스템 메시지
+                socket.on('system_message', (data) => {
+                    addMessage(data.message, 'system');
+                    
+                    // room_id가 포함되어 있으면 저장
+                    if (data.room_id) {
+                        currentRoomId = data.room_id;
+                        console.log('채팅방 ID 설정:', currentRoomId);
+                    }
+                });
+
+                // 에러 처리
+                socket.on('error', (data) => {
+                    console.error('Socket 에러:', data);
+                    addMessage(data.message || '연결 오류가 발생했습니다.', 'system');
+                });
+            } catch (error) {
+                console.error('Socket 연결 실패:', error);
+                addMessage('서버 연결에 실패했습니다. 페이지를 새로고침해주세요.', 'system');
+            }
+        }
+
+        // 연결 상태 업데이트
+        function updateConnectionStatus(status) {
+            const texts = translations[selectedLanguage] || translations['ko'];
+            
+            if (!statusDot || !statusText) return;
+            
+            switch(status) {
+                case 'connected':
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'AI 연결됨';
+                    break;
+                case 'connecting':
+                    statusDot.className = 'status-dot connecting';
+                    statusText.textContent = '연결 중...';
+                    break;
+                case 'staff_connected':
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = '직원 연결됨';
+                    break;
+                case 'disconnected':
+                    statusDot.className = 'status-dot';
+                    statusText.textContent = texts.connectionLost;
+                    break;
+            }
+        }
+
+        // 모드 설정
+        function setMode(mode) {
+            currentMode = mode;
+            
+            const aiModeBtn = document.getElementById('aiMode');
+            const staffModeBtn = document.getElementById('staffMode');
+            
+            if (aiModeBtn) {
+                aiModeBtn.classList.toggle('active', mode === 'ai');
+            }
+            if (staffModeBtn) {
+                staffModeBtn.classList.toggle('active', mode === 'staff');
+            }
+            
+            if (mode === 'ai') {
+                if (requestStaffButton) requestStaffButton.style.display = 'none';
+                if (sendButton) sendButton.style.display = 'block';
+                addMessage('AI 모드로 전환되었습니다. 자동으로 답변해드릴게요! 🤖', 'system');
+            } else {
+                if (!isConnectedToStaff) {
+                    addMessage('직원 연결 모드입니다. "직원 연결" 버튼을 눌러 직원과 채팅을 시작하세요. 👨‍💼', 'system');
+                    if (requestStaffButton) requestStaffButton.style.display = 'block';
+                    if (sendButton) sendButton.style.display = 'none';
+                } else {
+                    if (sendButton) sendButton.style.display = 'block';
+                    if (requestStaffButton) requestStaffButton.style.display = 'none';
+                }
+            }
+        }
+
+        // 🔧 수정된 직원 연결 요청 함수
+        function requestStaff() {
+            if (isConnectedToStaff) return;
+            
+            if (!socket || !socket.connected) {
+                console.error('Socket not connected');
+                addMessage('연결에 문제가 있습니다. 페이지를 새로고침해주세요.', 'system');
+                return;
+            }
+            
+            const texts = translations[selectedLanguage] || translations['ko'];
+            
+            try {
+                // Socket으로 직원 연결 요청
+                socket.emit('request_staff', {
+                    room_number: roomNumber,
+                    language: selectedLanguage
+                });
+                
+                addMessage(texts.staffConnecting, 'system');
+                
+                if (requestStaffButton) {
+                    requestStaffButton.style.display = 'none';
+                }
+                
+                updateConnectionStatus('connecting');
+            } catch (error) {
+                console.error('직원 연결 요청 실패:', error);
+                addMessage('직원 연결 요청에 실패했습니다. 다시 시도해주세요.', 'system');
+            }
+        }
+
+        // 메시지 추가
+        function addMessage(text, type, isTranslated = false) {
+            if (!chatContainer) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            if (type === 'staff') {
+                messageDiv.innerHTML = `
+                    <div class="message-header">👨‍💼 직원</div>
+                    <div>${text}</div>
+                `;
+            } else if (isTranslated && type === 'ai') {
+                messageDiv.innerHTML = `
+                    <div>${text}</div>
+                    <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">
+                        🤖 AI 자동 응답
+                    </div>
+                `;
+            } else {
+                messageDiv.textContent = text;
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Socket 메시지 표시
+        function displayMessage(messageData) {
+            const { sender_type, sender_name, original_message, translated_message } = messageData;
+            
+            if (sender_type === 'staff') {
+                // 직원 메시지: 번역된 메시지가 있으면 번역된 것을, 없으면 원본을 표시
+                const displayText = translated_message || original_message;
+                addMessage(displayText, 'staff');
+            } else if (sender_type === 'customer') {
+                // 고객 메시지: 자신이 보낸 메시지는 표시하지 않음 (이미 화면에 있음)
+                return;
+            }
+        }
+
+        // 직원 연결 표시
+        function addStaffIndicator() {
+            if (!chatContainer) return;
+            
+            const indicator = document.createElement('div');
+            indicator.className = 'staff-indicator';
+            indicator.textContent = '👨‍💼 직원과 연결됨';
+            chatContainer.appendChild(indicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 빠른 메시지 삽입
+        function insertQuickMessage(message) {
+            if (messageInput) {
+                messageInput.value = message;
+                validateForm();
+                messageInput.focus();
+            }
+        }
+
+        // 🔧 수정된 폼 유효성 검사 함수
+        function validateForm() {
+            if (!messageInput || !sendButton) {
+                return;
+            }
+            
+            const isValid = messageInput.value.trim().length > 0;
+            sendButton.disabled = !isValid;
+        }
+
+        // 메시지 전송
+        async function sendMessage() {
+            if (!messageInput) return;
+            
+            const userMessage = messageInput.value.trim();
+            if (!userMessage) return;
+
+            // 사용자 메시지 표시
+            addMessage(userMessage, 'user');
+            
+            // 입력창 비우기 및 버튼 비활성화
+            messageInput.value = '';
+            if (sendButton) sendButton.disabled = true;
+            
+            if (currentMode === 'ai') {
+                // AI 모드: 기존 REST API 사용
+                await handleAIResponse(userMessage);
+            } else if (isConnectedToStaff && currentRoomId) {
+                // 직원 채팅 모드: Socket.IO로 실시간 전송
+                console.log('직원에게 메시지 전송:', userMessage, 'Room ID:', currentRoomId);
+                
+                try {
+                    socket.emit('send_message', {
+                        room_id: currentRoomId,
+                        message: userMessage,
+                        sender_type: 'customer',
+                        sender_name: '고객',
+                        language: selectedLanguage
+                    });
+                } catch (error) {
+                    console.error('메시지 전송 실패:', error);
+                    addMessage('메시지 전송에 실패했습니다. 다시 시도해주세요.', 'system');
+                }
+            } else {
+                addMessage('직원과 연결되지 않았습니다. 직원 연결을 먼저 요청해주세요.', 'system');
+            }
+        }
+
+        // AI 응답 처리
+        async function handleAIResponse(userMessage) {
+            const texts = translations[selectedLanguage] || translations['ko'];
+            
+            // 타이핑 표시
+            if (typingIndicator) {
+                typingIndicator.textContent = texts.aiThinking;
+                typingIndicator.classList.add('show');
+            }
+
+            try {
+                // 서버로 메시지 전송 (기존 API 사용)
+                const response = await fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        room_number: roomNumber,
+                        original_message: userMessage,
+                        user_language: selectedLanguage,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success && result.ai_response) {
+                    // AI 응답 표시
+                    addMessage(result.ai_response, 'ai', true);
+                    
+                    // 직원 연결이 필요한 경우
+                    if (result.requires_staff) {
+                        setTimeout(() => {
+                            addMessage('더 자세한 도움이 필요하시다면 "직원과 채팅" 모드를 선택해주세요.', 'system');
+                        }, 1000);
+                    }
+                } else {
+                    const errorMessages = {
+                        'ko': "죄송합니다. 현재 서비스에 문제가 있습니다. 직원과 채팅을 시도해보세요.",
+                        'en': "Sorry, there's an issue with the service. Please try staff chat.",
+                        'ja': "申し訳ございません。現在サービスに問題があります。スタッフチャットをお試しください。",
+                        'zh': "抱歉，服务出现问题。请尝试员工聊天。"
+                    };
+                    addMessage(errorMessages[selectedLanguage] || errorMessages['ko'], 'ai');
+                }
+
+            } catch (error) {
+                console.error('Message sending failed:', error);
+                const errorMessages = {
+                    'ko': "메시지 전송에 실패했습니다. 다시 시도해 주세요.",
+                    'en': "Failed to send message. Please try again.",
+                    'ja': "メッセージの送信に失敗しました。再度お試しください。",
+                    'zh': "消息发送失败。请重试。"
+                };
+                addMessage(errorMessages[selectedLanguage] || errorMessages['ko'], 'ai');
+            } finally {
+                if (typingIndicator) {
+                    typingIndicator.classList.remove('show');
+                }
+            }
+        }
+
+        // 뒤로가기
+        function goBack() {
+            if (currentRoomId && socket) {
+                try {
+                    socket.emit('leave_room', { room_id: currentRoomId });
+                } catch (error) {
+                    console.log('방 나가기 실패:', error);
+                }
+            }
+            window.location.href = '/';
+        }
+
+        // 이벤트 리스너
+        if (messageInput) {
+            messageInput.addEventListener('input', validateForm);
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (sendButton && !sendButton.disabled) {
+                        sendMessage();
+                    }
+                }
+            });
+        }
+
+        if (sendButton) {
+            sendButton.addEventListener('click', sendMessage);
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            initializePage();
+        });
+
+        // 페이지가 이미 로드된 경우를 위한 추가 초기화
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+    </script>
+</body>
+</html>

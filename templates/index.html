@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나인트리 호텔 메시지 서비스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .hotel-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .hotel-logo h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .hotel-logo p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            border-color: #667eea;
+        }
+
+        .language-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .language-btn {
+            padding: 15px 20px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            background-color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .language-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .language-btn.active {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #ffe6e6;
+        }
+
+        .qr-info {
+            text-align: center;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .qr-info h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .qr-info p {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .language-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .hotel-logo h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hotel-logo">
+            <h1>🏨 나인트리 호텔</h1>
+            <p>AI 메시지 컨시어지 서비스</p>
+        </div>
+
+        <div class="qr-info">
+            <h2>🤖 24시간 AI 서비스</h2>
+            <p>언제든지 편리하게 메시지로 문의하세요.<br>
+            AI가 즉시 답변하고, 필요시 직원이 도움을 드립니다.</p>
+        </div>
+
+        <form id="roomForm">
+            <div class="form-group">
+                <label for="roomNumber">
+                    객실 번호 입력 / Room Number / 部屋番号 / 房间号
+                </label>
+                <input type="number" id="roomNumber" required placeholder="예: 501">
+                <div id="roomError" class="error-message">
+                    유효한 객실 번호를 입력해주세요.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>언어 선택 / Select Language / 言語選択 / 语言选择</label>
+                <div class="language-selector">
+                    <button type="button" class="language-btn" data-lang="ko">
+                        🇰🇷 한국어
+                    </button>
+                    <button type="button" class="language-btn" data-lang="en">
+                        🇺🇸 English
+                    </button>
+                    <button type="button" class="language-btn" data-lang="ja">
+                        🇯🇵 日本語
+                    </button>
+                    <button type="button" class="language-btn" data-lang="zh">
+                        🇨🇳 中文
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" disabled>
+                메시지 작성하기 / Start Messaging / メッセージ作成 / 开始消息
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // DOM 요소
+        const languageBtns = document.querySelectorAll('.language-btn');
+        const form = document.getElementById('roomForm');
+        const roomInput = document.getElementById('roomNumber');
+        const roomError = document.getElementById('roomError');
+        const submitBtn = document.querySelector('.submit-btn');
+
+        // 선택된 언어 저장
+        let selectedLang = '';
+
+        // 객실 번호 유효성 검사 함수
+        function isValidRoomNumber(number) {
+            const roomNum = parseInt(number);
+            const floor = Math.floor(roomNum / 100);
+            const room = roomNum % 100;
+
+            // 5층부터 22층까지 (13층 제외)
+            if (floor < 5 || floor > 22 || floor === 13) return false;
+            
+            // 일반적으로 1~13호실까지 있음
+            if (room < 1 || room > 13) return false;
+
+            // 21층, 22층은 9호실이 없음
+            if ((floor === 21 || floor === 22) && room === 9) return false;
+
+            return true;
+        }
+
+        // 폼 유효성 검사
+        function validateForm() {
+            const isValid = roomInput.value && isValidRoomNumber(roomInput.value) && selectedLang;
+            submitBtn.disabled = !isValid;
+        }
+
+        // 언어 선택 버튼 이벤트
+        languageBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 기존 선택 해제
+                languageBtns.forEach(b => b.classList.remove('active'));
+                // 새로운 선택
+                btn.classList.add('active');
+                selectedLang = btn.dataset.lang;
+                validateForm();
+            });
+        });
+
+        // 객실 번호 입력 이벤트
+        roomInput.addEventListener('input', () => {
+            roomError.style.display = 'none';
+            validateForm();
+        });
+
+        // 폼 제출 이벤트
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const roomNumber = roomInput.value;
+            
+            // 객실 번호 유효성 검사
+            if (!isValidRoomNumber(roomNumber)) {
+                roomError.style.display = 'block';
+                return;
+            }
+
+            // 언어 선택 확인
+            if (!selectedLang) {
+                alert('언어를 선택해주세요.');
+                return;
+            }
+
+            // 메시지 페이지로 이동
+            window.location.href = `/message?room=${roomNumber}&lang=${selectedLang}`;
+        });
+    </script>
+</body>
+</html>

@@ -42,7 +42,7 @@ app.config['SECRET_KEY'] = 'ninetree-hotel-secret-key-2024'
 CORS(app)
 
 # SocketIO 초기화 (실시간 채팅용)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=True, engineio_logger=True)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', ping_timeout=60, ping_interval=25)
 
 # 데이터베이스 초기화 및 마이그레이션 (개선된 버전)
 def init_database():
@@ -512,7 +512,7 @@ Answer in English:
                 'success': True,
                 'ai_response': ai_response,
                 'response_time': response_time,
-                'model_used': 'gemini-pro',
+                'model_used': 'gemini-1.5-flash',
                 'requires_staff': requires_staff
             }
             
@@ -1357,7 +1357,7 @@ def health_check():
         return jsonify({
             'status': 'healthy',
             'gemini_connected': True,
-            'current_model': 'gemini-pro',
+            'current_model': 'gemini-1.5-flash',
             'total_messages': message_count,
             'active_chat_rooms': active_room_count,
             'active_connections': len(active_connections),
@@ -1407,7 +1407,7 @@ if __name__ == '__main__':
         os.makedirs('static')
     
     print("🚀 나인트리 호텔 실시간 채팅 시스템 시작!")
-    print(f"🤖 사용 중인 AI 모델: gemini-pro")
+    print(f"🤖 사용 중인 AI 모델: gemini-1.5-flash")
     print("📱 고객용 페이지: http://localhost:5000")
     print("🔧 관리자 페이지: http://localhost:5000/admin")
     print("👨‍💼 직원 채팅: http://localhost:5000/staff-chat")
@@ -1421,9 +1421,8 @@ if __name__ == '__main__':
         app, 
         debug=False, 
         host='0.0.0.0', 
-        port=port, 
-        allow_unsafe_werkzeug=True
-
+        port=port
     )
+
 
 

@@ -1405,24 +1405,14 @@ if __name__ == '__main__':
         os.makedirs('templates')
     if not os.path.exists('static'):
         os.makedirs('static')
-    
+
     print("🚀 나인트리 호텔 실시간 채팅 시스템 시작!")
     print(f"🤖 사용 중인 AI 모델: gemini-1.5-flash")
-    print("📱 고객용 페이지: http://localhost:5000")
-    print("🔧 관리자 페이지: http://localhost:5000/admin")
-    print("👨‍💼 직원 채팅: http://localhost:5000/staff-chat")
-    print("💻 API 상태 확인: http://localhost:5000/api/health")
-    print("💾 데이터베이스: hotel_chat.db (SQLite)")
     
     # SocketIO 서버 실행
-    import os
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(
-        app, 
-        debug=False, 
-        host='0.0.0.0', 
-        port=port
-    )
+    app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
 

@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
-import ollama
+import google.generativeai as genai
 import json
 import time
 from datetime import datetime
@@ -205,189 +205,178 @@ def migrate_to_version(target_version):
         conn.close()
 
 # Ollama 번역 및 AI 응답 클래스
-class OllamaTranslator:
-    def __init__(self, model='qwen2.5:7b'):
-        self.model = model
-        self._lock = threading.Lock()
-        print(f"OllamaTranslator 초기화: 모델 {self.model}")
+class GeminiTranslator:
+    def __init__(self):
+        genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+        self.model = genai.GenerativeModel('gemini-pro')
+        print(f"GeminiTranslator 초기화: 모델 gemini-pro")
         
     def translate_text(self, text, source_lang, target_lang):
         """텍스트를 번역하는 함수 - 🔥 수정된 버전"""
         
-        with self._lock:
-            try:
-                # 간단한 키워드 기반 번역 (빠른 처리)
-                simple_translations = {
-                    'ja': {
-                        'WiFiパスワード': 'WiFi 비밀번호',
-                        'Wifiパスワード': 'WiFi 비밀번호', 
-                        'wifiパスワード': 'WiFi 비밀번호',
-                        'ワイファイパスワード': 'WiFi 비밀번호',
-                        'タオルの交換': '타월 교체',
-                        'チェックアウト': '체크아웃',
-                        'チェックイン': '체크인',
-                        '朝食': '조식',
-                        'プール': '수영장',
-                        'フィットネス': '피트니스',
-                        '駐車場': '주차장'
-                    },
-                    'en': {
-                        'wifi password': 'WiFi 비밀번호',
-                        'WiFi password': 'WiFi 비밀번호',
-                        'wi-fi password': 'WiFi 비밀번호',
-                        'towel exchange': '타월 교체',
-                        'checkout time': '체크아웃 시간',
-                        'checkin time': '체크인 시간',
-                        'breakfast time': '조식 시간',
-                        'swimming pool': '수영장',
-                        'fitness center': '피트니스 센터',
-                        'parking': '주차장'
-                    },
-                    'zh': {
-                        'WiFi密码': 'WiFi 비밀번호',
-                        'wifi密码': 'WiFi 비밀번호',
-                        'Wifi密码': 'WiFi 비밀번호',
-                        '妻子密码': 'WiFi 비밀번호',  # 잘못된 입력 교정
-                        '无线密码': 'WiFi 비밀번호',
-                        '网络密码': 'WiFi 비밀번호',
-                        '毛巾更换': '타월 교체',
-                        '退房时间': '체크아웃 시간',
-                        '入住时间': '체크인 시간',
-                        '早餐时间': '조식 시간',
-                        '游泳池': '수영장',
-                        '健身房': '피트니스',
-                        '停车场': '주차장'
-                    }
+        try:
+            # 간단한 키워드 기반 번역 (빠른 처리)
+            simple_translations = {
+                'ja': {
+                    'WiFiパスワード': 'WiFi 비밀번호',
+                    'Wifiパスワード': 'WiFi 비밀번호', 
+                    'wifiパスワード': 'WiFi 비밀번호',
+                    'ワイファイパスワード': 'WiFi 비밀번호',
+                    'タオルの交換': '타월 교체',
+                    'チェックアウト': '체크아웃',
+                    'チェックイン': '체크인',
+                    '朝食': '조식',
+                    'プール': '수영장',
+                    'フィットネス': '피트니스',
+                    '駐車場': '주차장'
+                },
+                'en': {
+                    'wifi password': 'WiFi 비밀번호',
+                    'WiFi password': 'WiFi 비밀번호',
+                    'wi-fi password': 'WiFi 비밀번호',
+                    'towel exchange': '타월 교체',
+                    'checkout time': '체크아웃 시간',
+                    'checkin time': '체크인 시간',
+                    'breakfast time': '조식 시간',
+                    'swimming pool': '수영장',
+                    'fitness center': '피트니스 센터',
+                    'parking': '주차장'
+                },
+                'zh': {
+                    'WiFi密码': 'WiFi 비밀번호',
+                    'wifi密码': 'WiFi 비밀번호',
+                    'Wifi密码': 'WiFi 비밀번호',
+                    '妻子密码': 'WiFi 비밀번호',  # 잘못된 입력 교정
+                    '无线密码': 'WiFi 비밀번호',
+                    '网络密码': 'WiFi 비밀번호',
+                    '毛巾更换': '타월 교체',
+                    '退房时间': '체크아웃 시간',
+                    '入住时间': '체크인 시간',
+                    '早餐时间': '조식 시간',
+                    '游泳池': '수영장',
+                    '健身房': '피트니스',
+                    '停车场': '주차장'
                 }
+            }
                 
-                # 키워드 기반 번역 시도
-                if source_lang in simple_translations:
-                    for keyword, translation in simple_translations[source_lang].items():
-                        if keyword in text:
-                            return {
-                                'success': True,
-                                'translated_text': translation,
-                                'translation_time': 0.1,
-                                'model_used': 'keyword_based'
-                            }
+            # 키워드 기반 번역 시도
+            if source_lang in simple_translations:
+                for keyword, translation in simple_translations[source_lang].items():
+                    if keyword.lower() in text.lower():
+                        return {
+                            'success': True,
+                            'translated_text': translation,
+                            'translation_time': 0.1,
+                            'model_used': 'keyword_based'
+                        }
                 
-                # Ollama를 사용한 번역 - 🔥 개선된 프롬프트
-                lang_names = {
-                    'ko': '한국어',
-                    'en': 'English', 
-                    'ja': '日本語',
-                    'zh': '中文'
-                }
+            # Gemini 를 사용한 번역 - 🔥 개선된 프롬프트
+            lang_names = {
+                'ko': '한국어',
+                'en': 'English', 
+                'ja': '日本語',
+                'zh': '中文'
+            }
                 
-                source_name = lang_names.get(source_lang, source_lang)
-                target_name = lang_names.get(target_lang, target_lang)
+            source_name = lang_names.get(source_lang, source_lang)
+            target_name = lang_names.get(target_lang, target_lang)
                 
-                # 🔥 모든 번역 케이스를 명시적으로 처리하여 불필요한 접두사 방지
-                if source_lang == 'ko' and target_lang == 'zh':
-                    prompt = f"请将以下韩语翻译成中文，只输出翻译结果，不要任何解释：{text}"
-                elif source_lang == 'ko' and target_lang == 'ja':
-                    prompt = f"以下の韓国語を日本語に翻訳してください。翻訳結果のみを出力してください：{text}"
-                elif source_lang == 'ko' and target_lang == 'en':
-                    prompt = f"Translate the following Korean to English. Output only the translation result: {text}"
-                elif source_lang == 'zh' and target_lang == 'ko':
-                    prompt = f"请将以下中文翻译成韩语，只输出翻译结果：{text}"
-                elif source_lang == 'ja' and target_lang == 'ko':
-                    prompt = f"以下の日本語を韓国語に翻訳してください。翻訳結果のみ出力してください：{text}"
-                elif source_lang == 'en' and target_lang == 'ko':
-                    prompt = f"Translate the following English to Korean. Output only the result: {text}"
-                else:
-                    # 기타 케이스
-                    prompt = f"Translate from {source_name} to {target_name}. Output only the translation result: {text}"
+            # 🔥 모든 번역 케이스를 명시적으로 처리하여 불필요한 접두사 방지
+            if source_lang == 'ko' and target_lang == 'zh':
+                prompt = f"请将以下韩语翻译成中文，只输出翻译结果，不要任何解释：{text}"
+            elif source_lang == 'ko' and target_lang == 'ja':
+                prompt = f"以下の韓国語を日本語に翻訳してください。翻訳結果のみを出力してください：{text}"
+            elif source_lang == 'ko' and target_lang == 'en':
+                prompt = f"Translate the following Korean to English. Output only the translation result: {text}"
+            elif source_lang == 'zh' and target_lang == 'ko':
+                prompt = f"请将以下中文翻译成韩语，只输出翻译结果：{text}"
+            elif source_lang == 'ja' and target_lang == 'ko':
+                prompt = f"以下の日本語を韓国語に翻訳してください。翻訳結果のみ出力してください：{text}"
+            elif source_lang == 'en' and target_lang == 'ko':
+                prompt = f"Translate the following English to Korean. Output only the result: {text}"
+            else:
+                # 기타 케이스
+                prompt = f"Translate from {source_name} to {target_name}. Output only the translation result: {text}"
 
-                start_time = time.time()
+            start_time = time.time()
+
+            #Gemini API 호출로 변경
+            response = self.model.generate_content(prompt)
                 
-                response = ollama.chat(
-                    model=self.model,
-                    messages=[{
-                        'role': 'user',
-                        'content': prompt
-                    }],
-                    options={
-                        'num_predict': 100,
-                        'temperature': 0.1
-                    }
-                )
+            end_time = time.time()
+            translation_time = round(end_time - start_time, 2)
                 
-                end_time = time.time()
-                translation_time = round(end_time - start_time, 2)
+            translated_text = response.text.strip()
                 
-                translated_text = response['message']['content'].strip()
+            # 🔥 강화된 후처리 - 불필요한 접두사/설명 제거
+            unwanted_prefixes = [
+                "翻译成中文是：", "翻译结果：", "翻译为：", "中文翻译：",
+                "日本語翻訳：", "日本語に翻訳すると：", "翻訳結果：",
+                "Translation:", "English translation:", "Korean translation:",
+                "번역:", "번역 결과:", "한국어 번역:", "영어 번역:",
+                "Translation result:", "The translation is:"
+            ]
                 
-                # 🔥 강화된 후처리 - 불필요한 접두사/설명 제거
-                unwanted_prefixes = [
-                    "翻译成中文是：", "翻译结果：", "翻译为：", "中文翻译：",
-                    "日本語翻訳：", "日本語に翻訳すると：", "翻訳結果：",
-                    "Translation:", "English translation:", "Korean translation:",
-                    "번역:", "번역 결과:", "한국어 번역:", "영어 번역:",
-                    "Translation result:", "The translation is:"
-                ]
+            for prefix in unwanted_prefixes:
+                if translated_text.startswith(prefix):
+                    translated_text = translated_text[len(prefix):].strip()
+                    break
                 
-                for prefix in unwanted_prefixes:
-                    if translated_text.startswith(prefix):
-                        translated_text = translated_text[len(prefix):].strip()
-                        break
+            # 후처리
+            corrections = {
+                "여비의 비밀번호": "WiFi 비밀번호",
+                "부인의 비밀번호": "WiFi 비밀번호",
+                "아내의 비밀번호": "WiFi 비밀번호",
+                "wi-fi": "WiFi",
+                "와이파이": "WiFi"
+            }
                 
-                # 후처리
-                corrections = {
-                    "여비의 비밀번호": "WiFi 비밀번호",
-                    "부인의 비밀번호": "WiFi 비밀번호",
-                    "아내의 비밀번호": "WiFi 비밀번호",
-                    "wi-fi": "WiFi",
-                    "와이파이": "WiFi"
-                }
+            for wrong, correct in corrections.items():
+                if wrong in translated_text:
+                    translated_text = translated_text.replace(wrong, correct)
                 
-                for wrong, correct in corrections.items():
-                    if wrong in translated_text:
-                        translated_text = translated_text.replace(wrong, correct)
+            # 불필요한 설명 제거
+            lines = translated_text.split('\n')
+            translated_text = lines[0].strip()
                 
-                # 불필요한 설명 제거
-                lines = translated_text.split('\n')
-                translated_text = lines[0].strip()
+            if ':' in translated_text and len(translated_text.split(':')) == 2:
+                translated_text = translated_text.split(':')[-1].strip()
                 
-                if ':' in translated_text and len(translated_text.split(':')) == 2:
-                    translated_text = translated_text.split(':')[-1].strip()
+            translated_text = translated_text.strip('"').strip("'").strip('()').strip()
                 
-                translated_text = translated_text.strip('"').strip("'").strip('()').strip()
+            if not translated_text or translated_text == text:
+                translated_text = text
                 
-                if not translated_text or translated_text == text:
-                    translated_text = text
+            return {
+                'success': True,
+                'translated_text': translated_text,
+                'translation_time': translation_time,
+                'model_used': 'gemini-pro'
+            }
                 
-                return {
-                    'success': True,
-                    'translated_text': translated_text,
-                    'translation_time': translation_time,
-                    'model_used': self.model
-                }
-                
-            except Exception as e:
-                print(f"번역 오류: {e}")
-                return {
-                    'success': False,
-                    'error': str(e),
-                    'translated_text': text
-                }
+        except Exception as e:
+            print(f"번역 오류: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'translated_text': text
+            }
 
     def get_ai_response(self, message, target_language='ko'):
         """업그레이드된 지능형 AI 응답 시스템"""
         
-        with self._lock:
-            try:
-                # 1단계: 빠른 키워드 매칭
-                quick_response = self.try_quick_keyword_response(message, target_language)
-                if quick_response:
-                    return quick_response
+        try:
+            # 1단계: 빠른 키워드 매칭
+            quick_response = self.try_quick_keyword_response(message, target_language)
+            if quick_response:
+                return quick_response
                 
-                # 2단계: LLM 기반 지능형 응답
-                return self.generate_smart_response(message, target_language)
+            # 2단계: LLM 기반 지능형 응답
+            return self.generate_smart_response(message, target_language)
             
-            except Exception as e:
-                print(f"AI 응답 생성 오류: {e}")
-                return self.get_gallback_reponse(target_language)
+        except Exception as e:
+            print(f"AI 응답 생성 오류: {e}")
+            return self.get_gallback_reponse(target_language)
             
     # 3. 새로운 메서드들 추가
     def try_quick_keyword_response(self, message, target_language):
@@ -451,7 +440,7 @@ class OllamaTranslator:
         return None
 
     def generate_smart_response(self, message, target_language='ko'):
-        """🧠 LLM 기반 지능형 응답 - 다국어 응답 수정"""
+        """🧠 Gemini 기반 지능형 응답"""
         
         system_prompt = self.create_hotel_prompt(target_language)
         
@@ -508,23 +497,14 @@ Answer in English:
         start_time = time.time()
         
         try:
-            response = ollama.chat(
-                model=self.model,
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                options={
-                    'num_predict': 200,
-                    'temperature': 0.2,
-                    'top_p': 0.8
-                }
-            )
+            #Gemini API 호출
+            combined_prompt = f"{system_prompt}\n\n{user_prompt}"
+            response = self.model.generate_content(combined_prompt)
             
             end_time = time.time()
             response_time = round(end_time - start_time, 2)
             
-            ai_response = response['message']['content'].strip()
+            ai_response = response.text.strip()
             ai_response = self.clean_ai_response(ai_response)
             requires_staff = self.should_connect_staff(message, ai_response)
             
@@ -532,12 +512,12 @@ Answer in English:
                 'success': True,
                 'ai_response': ai_response,
                 'response_time': response_time,
-                'model_used': 'llm_smart',
+                'model_used': 'gemini-pro',
                 'requires_staff': requires_staff
             }
             
         except Exception as e:
-            print(f"LLM 응답 생성 실패: {e}")
+            print(f"Gemini 응답 생성 실패: {e}")
             return self.get_fallback_response(target_language)
 
     def create_hotel_prompt(self, language):
@@ -761,7 +741,7 @@ Response Rules:
         }
 
 # 전역 번역기 인스턴스
-translator = OllamaTranslator(model='qwen2.5:7b')
+translator = GeminiTranslator()
 
 # 데이터베이스 초기화
 init_database()
@@ -1364,9 +1344,6 @@ def get_chat_rooms_api():
 def health_check():
     """서버 상태 확인"""
     try:
-        # Ollama 연결 테스트
-        models = ollama.list()
-        
         # 데이터베이스 연결 테스트
         conn = sqlite3.connect('hotel_chat.db')
         cursor = conn.cursor()
@@ -1379,9 +1356,8 @@ def health_check():
         
         return jsonify({
             'status': 'healthy',
-            'ollama_connected': True,
-            'available_models': [model.model for model in models.models],
-            'current_model': translator.model,
+            'gemini_connected': True,
+            'current_model': 'gemini-pro',
             'total_messages': message_count,
             'active_chat_rooms': active_room_count,
             'active_connections': len(active_connections),
@@ -1431,7 +1407,7 @@ if __name__ == '__main__':
         os.makedirs('static')
     
     print("🚀 나인트리 호텔 실시간 채팅 시스템 시작!")
-    print(f"🤖 사용 중인 AI 모델: {translator.model}")
+    print(f"🤖 사용 중인 AI 모델: gemini-pro")
     print("📱 고객용 페이지: http://localhost:5000")
     print("🔧 관리자 페이지: http://localhost:5000/admin")
     print("👨‍💼 직원 채팅: http://localhost:5000/staff-chat")
@@ -1447,4 +1423,5 @@ if __name__ == '__main__':
         host='0.0.0.0', 
         port=5000, 
         allow_unsafe_werkzeug=True
+
     )

@@ -208,8 +208,8 @@ def migrate_to_version(target_version):
 class GeminiTranslator:
     def __init__(self):
         genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
-        self.model = genai.GenerativeModel('gemini-pro')
-        print(f"GeminiTranslator 초기화: 모델 gemini-pro")
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        print(f"GeminiTranslator 초기화: 모델 gemini-1.5-flash")
         
     def translate_text(self, text, source_lang, target_lang):
         """텍스트를 번역하는 함수 - 🔥 수정된 버전"""
@@ -351,7 +351,7 @@ class GeminiTranslator:
                 'success': True,
                 'translated_text': translated_text,
                 'translation_time': translation_time,
-                'model_used': 'gemini-pro'
+                'model_used': 'gemini-1.5-flash'
             }
                 
         except Exception as e:
@@ -1425,3 +1425,4 @@ if __name__ == '__main__':
         allow_unsafe_werkzeug=True
 
     )
+

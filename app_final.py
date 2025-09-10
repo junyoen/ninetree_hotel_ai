@@ -42,7 +42,7 @@ app.config['SECRET_KEY'] = 'ninetree-hotel-secret-key-2024'
 CORS(app)
 
 # SocketIO 초기화 (실시간 채팅용)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=True, engineio_logger=True)
 
 # 데이터베이스 초기화 및 마이그레이션 (개선된 버전)
 def init_database():
@@ -1421,8 +1421,9 @@ if __name__ == '__main__':
         app, 
         debug=False, 
         host='0.0.0.0', 
-        port=5000, 
+        port=port, 
         allow_unsafe_werkzeug=True
 
     )
+
 
